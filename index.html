@@ -164,22 +164,25 @@
             min-width: 100%;
         }
 
-        /* --- FIXED SUBGRAPH STYLE RESET FOR MERMAID v11+ --- */
-        .mermaid .subgraph-node,
-        .mermaid .cluster,
-        .mermaid rect.cluster,
-        .mermaid .subgraphCluster rect,
-        .mermaid rect.subgraph-border {
+        /* --- FORCE REMOVE ALL ELK SUBGRAPH BACKGROUND BOXES & BORDERS --- */
+        .mermaid g.subgraph-node rect,
+        .mermaid g.subgraph-node polygon,
+        .mermaid g[id^="flowchart-Rank_"] rect,
+        .mermaid g[id^="flowchart-Rank_"] polygon,
+        .mermaid .cluster rect,
+        .mermaid .subgraphCluster rect {
             fill: transparent !important;
+            fill-opacity: 0 !important;
             stroke: none !important;
-            background: transparent !important;
-            box-shadow: none !important;
+            stroke-width: 0px !important;
         }
-        .mermaid .subgraphLabel text,
-        .mermaid .cluster label,
-        .mermaid .subgraph-title {
-            fill: none !important;
+        
+        /* Hide text labels inside subgraphs completely */
+        .mermaid g.subgraph-node text,
+        .mermaid g[id^="flowchart-Rank_"] text,
+        .mermaid .cluster label {
             display: none !important;
+            opacity: 0 !important;
         }
 
         .metrics-section, .admin-section {
@@ -378,8 +381,8 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
+            if (window.event && window.event.currentTarget) {
+                window.event.currentTarget.classList.add('active');
             }
             if(tabId === 'tree-tab') setTimeout(() => updateZoom(), 50);
         }
@@ -422,7 +425,23 @@
             { id: 'average_stakes_per_active_user_per_day', name: 'Average Stakes per Active User per Day', baseline: 10, formula: 'Awaiting Formula Mapping', definition: 'Placeholder metric.', metricLevel: 'User', rank: 4, parents: ['average_stake_per_active'] }
         ];
 
-        // --- FIXED: DYNAMIC CONFIG LINK PIPELINE ---
+        // --- FIXED: PIPELINE FALLBACK ORDER ---
+        function getMetricValue(id) {
+            const metric = metricsData.find(m => m.id === id);
+            if (!metric) return 0;
+            
+            // 1. Session inputs (highest priority)
+            const localSaved = localStorage.getItem(`local_mod_${id}`);
+            if (localSaved !== null) return parseFloat(localSaved);
+            
+            // 2. Calculated equations
+            if (typeof metric.calculate === 'function') return metric.calculate(getMetricValue);
+            
+            // 3. Fall back to config-modified baseline or default array value
+            return metric.baseline || 0;
+        }
+
+        // --- FIXED: ASYNC INITIAL LOADING CONFIGURATION ASSIGNMENT ---
         async function loadExternalConfig() {
             try {
                 const response = await fetch('config.json');
@@ -440,24 +459,9 @@
                 console.warn("Could not load config.json (using codebase defaults instead):", err.message);
             }
             
+            // Render everything AFTER configuration values are mapped inside the baseline slots
             renderTree();
             renderMetricsList();
-        }
-
-        // --- FIXED: ORDER OF ASSIGNMENT READOUT ---
-        function getMetricValue(id) {
-            const metric = metricsData.find(m => m.id === id);
-            if (!metric) return 0;
-            
-            // Check session overrides first
-            const localSaved = localStorage.getItem(`local_mod_${id}`);
-            if (localSaved !== null) return parseFloat(localSaved);
-            
-            // If it's an equation, compute it dynamically
-            if (typeof metric.calculate === 'function') return metric.calculate(getMetricValue);
-            
-            // Fall back to baseline (which config.json overrides safely)
-            return metric.baseline || 0;
         }
 
         function verifyAdminAccess() {
@@ -557,14 +561,14 @@
             });
         }
 
-        // Setup listener for glossary input element
         document.getElementById('searchInput').addEventListener('input', (e) => {
             renderMetricsList(e.target.value);
         });
 
+        // Initialize Mermaid configuring it for ELK Layout Compatibility
         mermaid.initialize({ startOnLoad: false, flowchart: { defaultRenderer: 'elk', htmlLabels: true, curve: 'linear' } });
 
-        // Bootstrap App by fetching config.json data structure first
+        // Bootstrap application engine
         loadExternalConfig();
     </script>
 </body>
