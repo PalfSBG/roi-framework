@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metric Tree Builder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.3.0/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        /* Tab Navigation Styles */
+        .tabs-nav {
+            display: flex;
+            background: #f1f3f5;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .content {
+            padding: 40px;
+            min-height: 70vh;
+        }
+
+        /* Tab Visibility */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .tree-section h2,
+        .metrics-section h2,
+        .admin-section h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .tree-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .zoom-controls button, .admin-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .zoom-controls button:hover, .admin-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .zoom-level {
+            font-size: 0.9em;
+            color: #667eea;
+            font-weight: 600;
+            min-width: 60px;
+        }
+
+        .reset-btn {
+            background: #f5576c !important;
+        }
+
+        .reset-btn:hover {
+            background: #c41e3a !important;
+        }
+
+        .tree-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            min-height: 600px;
+            overflow: auto;
+            max-height: 800px;
+            flex: 1;
+            position: relative;
+            border: 2px solid #e0e0e0;
+        }
+
+        .tree-container:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .mermaid-wrapper {
+            transform-origin: 0 0;
+            transition: transform 0.2s ease;
+            display: inline-block;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            min-width: 100%;
+        }
+
+        .mermaid .subgraphCluster rect,
+        .mermaid rect.subgraph-border {
+            fill: none !important;
+            stroke: none !important;
+            background: none !important;
+            opacity: 0 !important;
+        }
+        .mermaid .subgraphLabel text,
+        .mermaid .subgraph-title {
+            fill: none !important;
+            display: none !important;
+            opacity: 0 !important;
+        }
+
+        .metrics-section, .admin-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+        }
+        
+        #metricsList {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .search-box input, .admin-auth input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        .search-box input:focus, .admin-auth input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .metric-item {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: fit-content;
+        }
+        .metric-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+        .metric-item.active {
+            background: #f0f4ff;
+            border-left-color: #f5576c;
+        }
+        .metric-name {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1em;
+            word-break: break-word;
+        }
+        .metric-details {
+            display: none;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .metric-details.show {
+            display: block;
+        }
+        .detail-row {
+            margin-bottom: 12px;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .detail-value {
+            color: #555;
+            word-break: break-word;
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 3px;
+            font-size: 0.95em;
+            line-height: 1.4;
+            border-left: 3px solid #667eea;
+        }
+        .metric-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-top: 8px;
+            margin-right: 5px;
+        }
+        .badge-user {
+            background: #06b6d4;
+            color: white;
+        }
+        .badge-visit {
+            background: #f59e0b;
+            color: white;
+        }
+        .badge-other {
+            background: #8b5cf6;
+            color: white;
+        }
+        .badge-root {
+            background: #f5576c;
+            color: white;
+        }
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+            font-style: italic;
+            grid-column: 1 / -1;
+        }
+
+        /* Admin Input Panel Specific Elements */
+        .admin-auth {
+            max-width: 400px;
+            margin: 40px auto;
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .admin-auth input {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .input-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .input-card label {
+            display: block;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .input-card .input-desc {
+            font-size: 0.85em;
+            color: #777;
+            margin-bottom: 12px;
+            min-height: 32px;
+        }
+        .input-card input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 1.05em;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .input-card input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .error-msg {
+            color: #f5576c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+        .zoom-hint {
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Metric Tree</h1>
+            <p>Interactive Revenue Driver Hierarchy - ELK Layout Guided By Rank</p>
+        </div>
+
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('tree-tab')">🌿 Metric Tree Diagram</button>
+            <button class="tab-btn" onclick="switchTab('glossary-tab')">📖 Metrics Glossary</button>
+            <button class="tab-btn" onclick="switchTab('admin-tab')">⚙️ Admin Inputs</button>
+        </div>
+
+        <div class="content">
+            <div id="tree-tab" class="tab-content active">
+                <div class="tree-section">
+                    <h2>Metric Tree Diagram</h2>
+                    <div class="zoom-controls">
+                        <button id="zoomIn">🔍+ Zoom In</button>
+                        <button id="zoomOut">🔍− Zoom Out</button>
+                        <span class="zoom-level" id="zoomLevel">100%</span>
+                        <button class="reset-btn" id="resetZoom">↺ Reset</button>
+                    </div>
+                    <div class="zoom-hint">💡 Tip: Use Ctrl+Scroll or Cmd+Scroll to zoom in the diagram</div>
+                    <div class="tree-container" id="treeContainer">
+                        <div class="mermaid-wrapper" id="mermaidWrapper">
+                            <div class="mermaid" id="treeChart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="glossary-tab" class="tab-content">
+                <div class="metrics-section">
+                    <h2>Metrics Details</h2>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="🔍 Search metrics...">
+                    </div>
+                    <div id="metricsList"></div>
+                </div>
+            </div>
+
+            <div id="admin-tab" class="tab-content">
+                <div class="admin-section">
+                    <h2>Variable Assumptions Control</h2>
+                    
+                    <div id="adminAuthBlock" class="admin-auth">
+                        <h3>🔒 Admin Authentication</h3>
+                        <p style="color:#777; font-size:0.9em; margin: 10px 0 20px;">Please enter your passcode to modify system variables.</p>
+                        <input type="password" id="adminPasswordInput" placeholder="Enter configuration key...">
+                        <button class="admin-btn" onclick="verifyAdminAccess()">Unlock Controls</button>
+                        <div id="authError" class="error-msg">Invalid Passcode. Access Denied.</div>
+                    </div>
+
+                    <div id="adminControlsBlock" style="display: none;">
+                        <p style="color: #555; margin-bottom: 20px;">Changing these numbers will instantly update calculations dynamically inside the <b>Metric Tree</b> and <b>Glossary</b> views.</p>
+                        <div id="dynamicInputsContainer" class="inputs-grid"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION: Set your workspace password here
+        const ADMIN_SECRET_KEY = "ROI2026"; 
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            if(tabId === 'tree-tab') {
+                setTimeout(() => updateZoom(), 50);
+            }
+        }
+
+        // --- CORE DATA ARCHITECTURE ---
+        const metricsData = [
+            {
+                id: 'total_site_visitors',
+                name: 'Total Site Visitors',
+                baseline: 550000,
+                formula: 'Static Input',
+                definition: 'The raw unique visitors hitting the platform ecosystem.',
+                metricLevel: 'User',
+                rank: 6,
+                parents: ['total_logged_in_users', 'total_visits']
+            },
+            {
+                id: 'visits_per_visitor',
+                name: 'Visits per Visitor',
+                baseline: 3.2,
+                formula: 'Static Input',
+                definition: 'Average frequency of site interactions per visitor structural group.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_visits']
+            },
+            {
+                id: 'visitor_to_logged_in_conversion',
+                name: 'Visitor to Logged-In Conversion',
+                baseline: 0.45,
+                formula: 'Static Input',
+                definition: 'Conversion percentage threshold tracking active authentication intent.',
+                metricLevel: 'User',
+                rank: 6.5,
+                parents: ['total_logged_in_users']
+            },
+            {
+                id: 'total_visits',
+                name: 'Total Visits',
+                formula: 'Total Site Visitors × Visits per Visitor',
+                calculate: (get) => get('total_site_visitors') * get('visits_per_visitor'),
+                definition: 'The derived baseline volume mapping out comprehensive site sessions.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_logged_in_visits']
+            },
+            {
+                id: 'total_logged_in_users',
+                name: 'Total Logged-In Users',
+                formula: 'Total Site Visitors × Visitor to Logged-In Conversion',
+                calculate: (get) => get('total_site_visitors') * get('visitor_to_logged_in_conversion'),
+                definition: 'The calculated baseline sizing total unique authentications.',
+                metricLevel: 'User',
+                rank: 6,
+                parents: ['total_active_users']
+            },
+            {
+                id: 'total_net_revenue',
+                name: 'Total Normalised Net Revenue',
+                baseline: 32896095.80,
+                formula: 'Gross Revenue - Generosity Spend',
+                definition: 'The total revenue generated after accounting for all bonuses and promotions provided to players. This is the net financial performance metric.',
+                metricLevel: 'Other',
+                rank: 0.5,
+                parents: []
+            },
+            {
+                id: 'total_gross_revenue',
+                name: 'Total Normalised Gross Revenue',
+                baseline: 38021535.80,
+                formula: 'Total Stakes × Margin %',
+                definition: 'The total revenue generated from all bets placed before deducting promotional spend. Represents the gross gaming revenue before any bonuses.',
+                metricLevel: 'Visit',
+                rank: 1.5,
+                parents: []
+            },
+            {
+                id: 'total_active_real_money_player_days',
+                name: 'Total Active Real Money Player Days',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 6,
+                parents: []
+            },
+            {
+                id: 'total_real_money_actives',
+                name: 'Total Real Money Actives',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 6,
+                parents: ['total_active_real_money_player_days']
+            },
+            {
+                id: 'real_money_active_conversion',
+                name: 'Real Money Active Conversion',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 7,
+                parents: ['total_real_money_actives']
+            },
+            {
+                id: 'total_active_users',
+                name: 'Total Active Users',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 5,
+                parents: ['total_gross_revenue', 'total_net_revenue', 'total_real_money_actives', 'total_bets_placed']
+            },
+            {
+                id: 'logged_in_to_active_users',
+                name: 'Logged-In to Active User Conversion',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 6,
+                parents: ['total_active_users']
+            },
+            {
+                id: 'total_logged_in_visits',
+                name: 'Total Logged-In Visits',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_visits_with_a_game_launch']
+            },
+            {
+                id: 'visit_to_logged_in_conversion',
+                name: 'Visit to Logged-In Conversion',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_logged_in_visits']
+            },
+            {
+                id: 'conversion_to_intent',
+                name: 'Conversion To Intent',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_visits_with_a_game_launch']
+            },
+            {
+                id: 'total_visits_with_a_game_launch',
+                name: 'Total Visits with a Game Launch',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_games_launched']
+            },
+            {
+                id: 'games_launched_per_visit',
+                name: 'Games Launched per Visit',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_games_launched']
+            },
+            {
+                id: 'total_games_launched',
+                name: 'Total Games Launched',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_game_launches_with_real_money_stake']
+            },
+            {
+                id: 'game_launch_to_real_money_stake_conversion',
+                name: 'Game Launch to Real Money Stake Conversion',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_game_launches_with_real_money_stake']
+            },
+            {
+                id: 'total_game_launches_with_real_money_stake',
+                name: 'Total Game Launchs with a Real Money Stake',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_real_money_bets_placed']
+            },
+            {
+                id: 'real_money_bets_placed_per_game_launch',
+                name: 'Real Money Bets Placed per Game Launch',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1,
+                parents: ['total_real_money_bets_placed']
+            },
+            {
+                id: 'total_real_money_bets_placed',
+                name: 'Total Real Money Bets Placed',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 2,
+                parents: ['total_gross_revenue']
+            },
+            {
+                id: 'total_bets_placed',
+                name: 'Total Bets Placed',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 3,
+                parents: ['total_real_money_bets_placed']
+            },
+            {
+                id: 'perc_real_money_bets_placed',
+                name: '% Total Real Money Bets Placed',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 3,
+                parents: ['total_real_money_bets_placed']
+            },
+            {
+                id: 'bets_placed_per_active_user',
+                name: 'Bets Placed per Active User',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 3,
+                parents: ['total_bets_placed']
+            },
+            {
+                id: 'average_stake_per_bet',
+                name: 'Average Stake per Bet',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 4,
+                parents: ['total_gross_revenue']
+            },
+            {
+                id: 'margin_perc',
+                name: 'Margin %',
+                baseline: 0.545,
+                formula: 'Static Input',
+                definition: 'Target processing yield margin structure ratio configurations.',
+                metricLevel: 'Visit',
+                rank: 4,
+                parents: ['total_gross_revenue']
+            },
+            {
+                id: 'gross_revenue_per_active',
+                name: 'Gross Revenue per Active',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 4,
+                parents: ['total_gross_revenue', 'average_revenue_per_user']
+            },
+            {
+                id: 'average_revenue_per_user',
+                name: 'Average Revenue per User',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 4,
+                parents: ['total_net_revenue']
+            },
+            {
+                id: 'generosity_spend_per_user',
+                name: 'Generosity Spend per User',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 4,
+                parents: ['average_revenue_per_user']
+            },
+            {
+                id: 'average_stake_per_active',
+                name: 'Average Stake per Active',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 4,
+                parents: ['gross_revenue_per_active', 'total_stakes']
+            },
+            {
+                id: 'total_stakes',
+                name: 'Total Stakes',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 4,
+                parents: []
+            },
+            {
+                id: 'active_player_days_per_active_user',
+                name: 'Active Player Days per Active User',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 4,
+                parents: ['average_stake_per_active']
+            },
+            {
+                id: 'average_stakes_per_active_user_per_day',
+                name: 'Average Stakes per Active User per Day',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'User',
+                rank: 4,
+                parents: ['average_stake_per_active']
+            }
+        ];
+
+        // --- CALCULATION ENGINE ---
+        function getMetricValue(id) {
+            const metric = metricsData.find(m => m.id === id);
+            if (!metric) return 0;
+            
+            if (typeof metric.calculate === 'function') {
+                return metric.calculate(getMetricValue);
+            }
+            return metric.baseline || 0;
+        }
+
+        // --- AUTHENTICATION ENGINE ---
+        function verifyAdminAccess() {
+            const inputVal = document.getElementById('adminPasswordInput').value;
+            const errorBlock = document.getElementById('authError');
+            const authBlock = document.getElementById('adminAuthBlock');
+            const controlsBlock = document.getElementById('adminControlsBlock');
+
+            if (inputVal === ADMIN_SECRET_KEY) {
+                errorBlock.style.display = "none";
+                authBlock.style.display = "none";
+                controlsBlock.style.display = "block";
+                generateAdminInputs(); // Build out input cells dynamically
+            } else {
+                errorBlock.style.display = "block";
+            }
+        }
+
+        // --- DYNAMIC CONTROL CREATOR ---
+        function generateAdminInputs() {
+            const container = document.getElementById('dynamicInputsContainer');
+            container.innerHTML = ''; // Wipe existing controls if refreshing
+
+            metricsData.forEach(metric => {
+                // Only generate input forms for metrics explicitly running on 'Static Input'
+                if (metric.formula === 'Static Input') {
+                    const card = document.createElement('div');
+                    card.className = 'input-card';
+                    
+                    card.innerHTML = `
+                        <label for="input_${metric.id}">${metric.name}</label>
+                        <div class="input-desc">${metric.definition || 'System Base Assumption'}</div>
+                        <input type="number" step="any" id="input_${metric.id}" value="${metric.baseline}">
+                    `;
+
+                    // Handle modifications in real-time
+                    card.querySelector('input').addEventListener('input', (e) => {
+                        const nextVal = parseFloat(e.target.value);
+                        metric.baseline = isNaN(nextVal) ? 0 : nextVal;
+                        
+                        // Re-trigger visual engines instantly across active views
+                        renderTree();
+                        renderMetricsList(document.getElementById('searchInput').value);
+                    });
+
+                    container.appendChild(card);
+                }
+            });
+        }
+
+        let currentZoom = 6;
+        const zoomStep = 1;
+        const minZoom = 0.1;
+        const maxZoom = 10;
+
+        const treeContainer = document.getElementById('treeContainer');
+        const mermaidWrapper = document.getElementById('mermaidWrapper');
+        const zoomLevelDisplay = document.getElementById('zoomLevel');
+
+        function updateZoom() {
+            mermaidWrapper.style.transform = `scale(${currentZoom})`;
+            zoomLevelDisplay.textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            if (currentZoom < maxZoom) {
+                currentZoom += zoomStep;
+                updateZoom();
+            }
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            if (currentZoom > minZoom) {
+                currentZoom -= zoomStep;
+                updateZoom();
+            }
+        });
+
+        document.getElementById('resetZoom').addEventListener('click', () => {
+            currentZoom = 1;
+            updateZoom();
+        });
+
+        treeContainer.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    if (currentZoom < maxZoom) currentZoom += 0.05;
+                } else {
+                    if (currentZoom > minZoom) currentZoom -= 0.05;
+                }
+                updateZoom();
+            }
+        }, { passive: false });
+
+        let selectedMetricId = null;
+
+        function formatBaseline(value) {
+            if (typeof value !== 'number') return value;
+            return value > 1 ? value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : value.toFixed(4);
+        }
+
+        function generateMermaidDiagram() {
+            let mermaidCode = `graph TD\n`;
+            
+            const groupsByRank = {};
+            metricsData.forEach(metric => {
+                const rankVal = metric.rank !== undefined ? metric.rank : 99;
+                if (!groupsByRank[rankVal]) groupsByRank[rankVal] = [];
+                groupsByRank[rankVal].push(metric);
+            });
+
+            const activeSubgraphs = [];
+
+            Object.keys(groupsByRank).sort((a, b) => a - b).forEach(rank => {
+                const nodesInRank = groupsByRank[rank];
+                const useSubgraph = nodesInRank.length > 1 || rank == 0.5;
+                const subgraphId = `Rank_${rank.toString().replace('.', '_')}`;
+
+                if (useSubgraph) {
+                    mermaidCode += `  subgraph ${subgraphId} [" "]\n`;
+                    activeSubgraphs.push(subgraphId);
+                }
+                
+                nodesInRank.forEach(metric => {
+                    const nodeName = metric.name.substring(0, 35);
+                    const dynamicValue = formatBaseline(getMetricValue(metric.id));
+                    const nodeText = `${nodeName}<br/><b>${dynamicValue}</b>`;
+                    mermaidCode += `      ${metric.id}["${nodeText}"]\n`;
+                });
+
+                if (useSubgraph) {
+                    mermaidCode += `  end\n`;
+                }
+            });
+
+            metricsData.forEach(metric => {
+                if (metric.parents) {
+                    metric.parents.forEach(parentId => {
+                        mermaidCode += `    ${parentId} --> ${metric.id}\n`;
+                    });
+                }
+            });
+            
+            mermaidCode += `
+                classDef levelRoot fill:#f5576c,stroke:#c41e3a,stroke-width:3px,color:#fff
+                classDef levelOther fill:#667eea,stroke:#5568d3,stroke-width:2px,color:#fff
+                classDef levelUser fill:#06b6d4,stroke:#0891b2,stroke-width:2px,color:#fff
+                classDef levelVisit fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
+                
+                class total_net_revenue levelRoot
+            `;
+
+            activeSubgraphs.forEach(id => {
+                mermaidCode += `    style ${id} fill:none,stroke:none,stroke-width:0px\n`;
+            });
+
+            return mermaidCode;
+        }
+
+        function renderTree() {
+            metricsData.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+            const diagram = generateMermaidDiagram();
+            document.getElementById('treeChart').innerHTML = diagram;
+            
+            mermaid.run({
+                nodes: [document.getElementById('treeChart')]
+            });
+        }
+
+        function renderMetricsList(filter = '') {
+            const list = document.getElementById('metricsList');
+            list.innerHTML = '';
+            const filtered = metricsData.filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="no-results">No metrics found</div>';
+                return;
+            }
+
+            filtered.forEach(metric => {
+                const item = document.createElement('div');
+                item.className = 'metric-item' + (metric.id === selectedMetricId ? ' active' : '');
+                item.onclick = () => selectMetric(metric.id);
+
+                let badgeClass = 'badge-other';
+                if (metric.metricLevel) {
+                    badgeClass = 'badge-' + metric.metricLevel.toLowerCase();
+                    if (metric.metricLevel === 'Other') badgeClass = 'badge-other';
+                }
+                if (metric.id === 'total_net_revenue') badgeClass = 'badge-root';
+
+                const displayValue = formatBaseline(getMetricValue(metric.id));
+
+                item.innerHTML = `
+                    <div class="metric-name">${metric.name}</div>
+                    <span class="metric-badge ${badgeClass}">${metric.metricLevel || 'N/A'} (Rank: ${metric.rank})</span>
+                    <div class="metric-details ${metric.id === selectedMetricId ? 'show' : ''}">
+                        <div class="detail-row"><div class="detail-label">📖 Definition</div><div class="detail-value">${metric.definition || 'N/A'}</div></div>
+                        <div class="detail-row"><div class="detail-label">📊 Baseline Value</div><div class="detail-value">${displayValue}</div></div>
+                        <div class="detail-row"><div class="detail-label">📐 Formula</div><div class="detail-value">${metric.formula || 'N/A'}</div></div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function selectMetric(metricId) {
+            selectedMetricId = metricId;
+            renderMetricsList(document.getElementById('searchInput').value);
+        }
+
+        document.getElementById('searchInput').addEventListener('keyup', e => renderMetricsList(e.target.value));
+
+        mermaid.initialize({ 
+            startOnLoad: false,
+            flowchart: { 
+                defaultRenderer: 'elk', 
+                htmlLabels: true, 
+                curve: 'linear' 
+            },
+            elk: { 
+                mergeEdges: true, 
+                nodePlacementStrategy: 'NETWORK_SIMPLEX', 
+                edgeRouting: 'ORTHOGONAL', 
+                spacing: {
+                    nodeNode: 60,
+                    layerLayer: 90
+                }
+            }
+        });
+
+        renderTree();
+        renderMetricsList();
+        setTimeout(() => updateZoom(), 500);
+    </script>
+</body>
+</html>
