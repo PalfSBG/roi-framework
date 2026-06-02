@@ -449,7 +449,12 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            
+            if (window.event && window.event.currentTarget) {
+                window.event.currentTarget.classList.add('active');
+            } else if (typeof event !== 'undefined' && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
             
             if(tabId === 'tree-tab') {
                 setTimeout(() => updateZoom(), 50);
@@ -551,7 +556,7 @@
             {
                 id: 'real_money_active_conversion',
                 name: 'Real Money Active Conversion',
-                baseline: 10, // Fallback default value if file fails to fetch
+                baseline: 10, 
                 formula: 'Awaiting Formula Mapping',
                 definition: 'Conversion threshold measuring customer transition from standard session engagement to funded real money status.',
                 metricLevel: 'User',
@@ -808,17 +813,15 @@
                     const config = await response.json();
                     const targetMetric = metricsData.find(m => m.id === 'real_money_active_conversion');
                     
-                    // Replace baseline with config value if specified
                     if (targetMetric && config.real_money_active_conversion !== undefined) {
                         targetMetric.baseline = parseFloat(config.real_money_active_conversion);
-                        targetMetric.formula = 'Static Input'; // Flag it as static so it is editable in admin tools
+                        targetMetric.formula = 'Static Input'; 
                     }
                 }
             } catch (error) {
                 console.error("Could not fetch or parse config.json, running default baseline context:", error);
             }
 
-            // Render components after the baseline variable mapping check completes
             renderTree();
             renderMetricsList();
             setTimeout(() => updateZoom(), 500);
@@ -846,7 +849,7 @@
                 errorBlock.style.display = "none";
                 authBlock.style.display = "none";
                 controlsBlock.style.display = "block";
-                generateAdminInputs(); // Build out input cells dynamically
+                generateAdminInputs(); 
             } else {
                 errorBlock.style.display = "block";
             }
@@ -855,10 +858,9 @@
         // --- DYNAMIC CONTROL CREATOR ---
         function generateAdminInputs() {
             const container = document.getElementById('dynamicInputsContainer');
-            container.innerHTML = ''; // Wipe existing controls if refreshing
+            container.innerHTML = ''; 
 
             metricsData.forEach(metric => {
-                // Only generate input forms for metrics explicitly running on 'Static Input'
                 if (metric.formula === 'Static Input') {
                     const card = document.createElement('div');
                     card.className = 'input-card';
@@ -869,12 +871,10 @@
                         <input type="number" step="any" id="input_${metric.id}" value="${metric.baseline}">
                     `;
 
-                    // Handle modifications in real-time
                     card.querySelector('input').addEventListener('input', (e) => {
                         const nextVal = parseFloat(e.target.value);
                         metric.baseline = isNaN(nextVal) ? 0 : nextVal;
                         
-                        // Re-trigger visual engines instantly across active views
                         renderTree();
                         renderMetricsList(document.getElementById('searchInput').value);
                     });
@@ -884,10 +884,10 @@
             });
         }
 
-        let currentZoom = 6;
-        const zoomStep = 1;
+        let currentZoom = 1;
+        const zoomStep = 0.2;
         const minZoom = 0.1;
-        const maxZoom = 10;
+        const maxZoom = 4;
 
         const treeContainer = document.getElementById('treeContainer');
         const mermaidWrapper = document.getElementById('mermaidWrapper');
@@ -1066,7 +1066,7 @@
             }
         });
 
-        // Trigger asynchronous loading sequence from external config file
+        // Trigger dynamic context fetch assignment pipeline sequence
         loadConfig();
     </script>
 </body>
