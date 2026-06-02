@@ -1,6 +1,22 @@
 {
-    "total_site_visitors": 550000,
-    "visits_per_visitor": 3.2,
-    "visitor_to_logged_in_conversion": 0.45,
-    "margin_perc": 0.545
+"margin_perc": 0.0545,
+"real_money_active_conversion": 0.32,
+"conversion_to_intent": 0.59,
+"game_launch_to_real_money_stake_conversion": 0.66,
+"logged_in_to_active_users": 0.67,
+"visitor_to_logged_in_conversion": 0.7,
+"average_stake_per_bet": 0.74,
+"visit_to_logged_in_conversion": 0.94,
+"perc_real_money_bets_placed": 0.9889,
+"visits_per_visitor": 1.33,
+"total_active_real_money_player_days": 10,
+"real_money_bets_placed_per_game_launch": 10,
+"bets_placed_per_active_user": 1121,
+"average_stakes_per_active_user_per_day": 117.72,
+"total_site_visitors": 1797441,
+"total_net_revenue": 32896095.8,
+"total_gross_revenue": 38021535.8,
+"games_launched_per_visit": 4,
+"generosity_spend_per_user": 6.08,
+"active_player_days_per_active_user": 7.03
 }
