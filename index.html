@@ -449,7 +449,11 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            if (window.event && window.event.currentTarget) {
+                window.event.currentTarget.classList.add('active');
+            } else if (typeof event !== 'undefined' && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
             
             if(tabId === 'tree-tab') {
                 setTimeout(() => updateZoom(), 50);
@@ -552,8 +556,8 @@
                 id: 'real_money_active_conversion',
                 name: 'Real Money Active Conversion',
                 baseline: 10,
-                formula: 'Awaiting Formula Mapping',
-                definition: 'Placeholder calculated field metric structure.',
+                formula: 'Static Input', // Modified from 'Awaiting Formula Mapping' to fetch externally
+                definition: 'Conversion threshold measuring customer transition from standard session engagement to funded real money status.',
                 metricLevel: 'User',
                 rank: 7,
                 parents: ['total_real_money_actives']
@@ -800,11 +804,40 @@
             }
         ];
 
+        // --- NEW: CONFIG EXTRACTION & PIPELINE ENGINE ---
+        async function loadExternalConfig() {
+            try {
+                const response = await fetch('config.json');
+                if (!response.ok) throw new Error('File not found');
+                
+                const cloudConfig = await response.json();
+                
+                // Map properties from the json directly over data configurations matches
+                metricsData.forEach(metric => {
+                    if (cloudConfig[metric.id] !== undefined) {
+                        metric.baseline = parseFloat(cloudConfig[metric.id]);
+                    }
+                });
+                console.log("Configuration successfully loaded and synchronized.");
+            } catch (err) {
+                console.warn("Could not load config.json (falling back to baseline code constants):", err.message);
+            }
+            
+            // Render UI structures after pipeline assignment passes complete
+            renderTree();
+            renderMetricsList();
+            setTimeout(() => updateZoom(), 500);
+        }
+
         // --- CALCULATION ENGINE ---
         function getMetricValue(id) {
             const metric = metricsData.find(m => m.id === id);
             if (!metric) return 0;
             
+            // Check session alterations from Admin input sliders first
+            const localSaved = localStorage.getItem(`local_mod_${id}`);
+            if (localSaved !== null) return parseFloat(localSaved);
+
             if (typeof metric.calculate === 'function') {
                 return metric.calculate(getMetricValue);
             }
@@ -834,7 +867,6 @@
             container.innerHTML = ''; // Wipe existing controls if refreshing
 
             metricsData.forEach(metric => {
-                // Only generate input forms for metrics explicitly running on 'Static Input'
                 if (metric.formula === 'Static Input') {
                     const card = document.createElement('div');
                     card.className = 'input-card';
@@ -842,13 +874,17 @@
                     card.innerHTML = `
                         <label for="input_${metric.id}">${metric.name}</label>
                         <div class="input-desc">${metric.definition || 'System Base Assumption'}</div>
-                        <input type="number" step="any" id="input_${metric.id}" value="${metric.baseline}">
+                        <input type="number" step="any" id="input_${metric.id}" value="${getMetricValue(metric.id)}">
                     `;
 
                     // Handle modifications in real-time
                     card.querySelector('input').addEventListener('input', (e) => {
                         const nextVal = parseFloat(e.target.value);
-                        metric.baseline = isNaN(nextVal) ? 0 : nextVal;
+                        if (isNaN(nextVal)) {
+                            localStorage.removeItem(`local_mod_${metric.id}`);
+                        } else {
+                            localStorage.setItem(`local_mod_${metric.id}`, nextVal);
+                        }
                         
                         // Re-trigger visual engines instantly across active views
                         renderTree();
@@ -860,10 +896,10 @@
             });
         }
 
-        let currentZoom = 6;
-        const zoomStep = 1;
+        let currentZoom = 1;
+        const zoomStep = 0.2;
         const minZoom = 0.1;
-        const maxZoom = 10;
+        const maxZoom = 4;
 
         const treeContainer = document.getElementById('treeContainer');
         const mermaidWrapper = document.getElementById('mermaidWrapper');
@@ -1042,9 +1078,8 @@
             }
         });
 
-        renderTree();
-        renderMetricsList();
-        setTimeout(() => updateZoom(), 500);
+        // Bootstrap App Pipeline by querying the external layout file context config first
+        loadExternalConfig();
     </script>
 </body>
 </html>
