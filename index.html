@@ -811,17 +811,26 @@
                 const response = await fetch('config.json');
                 if (response.ok) {
                     const config = await response.json();
-                    const targetMetric = metricsData.find(m => m.id === 'real_money_active_conversion');
                     
-                    if (targetMetric && config.real_money_active_conversion !== undefined) {
-                        targetMetric.baseline = parseFloat(config.real_money_active_conversion);
-                        targetMetric.formula = 'Static Input'; 
-                    }
+                    // Loop through every key-value pair provided in config.json
+                    Object.keys(config).forEach(key => {
+                        // Find the matching metric object in your data architecture
+                        const targetMetric = metricsData.find(m => m.id === key);
+                        
+                        if (targetMetric) {
+                            targetMetric.baseline = parseFloat(config[key]);
+                            
+                            // Optional: If you want to automatically label configured inputs as "Static Input"
+                            if (targetMetric.formula === 'Awaiting Formula Mapping') {
+                                targetMetric.formula = 'Static Input';
+                            }
+                        }
+                    });
                 }
             } catch (error) {
                 console.error("Could not fetch or parse config.json, running default baseline context:", error);
             }
-
+        
             renderTree();
             renderMetricsList();
             setTimeout(() => updateZoom(), 500);
