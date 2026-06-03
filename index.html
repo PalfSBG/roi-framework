@@ -461,7 +461,7 @@
             }
         }
 
-        // --- CORE DATA ARCHITECTURE ---
+// --- CORE DATA ARCHITECTURE ---
         const metricsData = [
             {
                 id: 'total_site_visitors',
@@ -714,24 +714,14 @@
                 parents: ['total_bets_placed']
             },
             {
-                id: 'average_stake_per_bet',
-                name: 'Average Stake per Bet',
-                baseline: 10,
-                formula: 'Static Input',
-                definition: 'Placeholder calculated field metric structure.',
-                metricLevel: 'Visit',
-                rank: 4,
-                parents: ['total_gross_revenue']
-            },
-            {
                 id: 'margin_perc',
                 name: 'Margin %',
-                baseline: 0.545,
+                baseline: 0.0545,
                 formula: 'Static Input',
                 definition: 'Target processing yield margin structure ratio configurations.',
                 metricLevel: 'Visit',
-                rank: 4,
-                parents: ['total_gross_revenue', 'gross_revenue_per_active']
+                rank: 1.75,
+                parents: ['gross_revenue_per_active', 'total_gross_revenue']
             },
             {
                 id: 'gross_revenue_per_active',
@@ -740,8 +730,18 @@
                 calculate: (get) => get('average_stake_per_active') * get('margin_perc'),
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
-                rank: 4,
+                rank: 1.5,
                 parents: ['total_gross_revenue', 'average_revenue_per_user']
+            },
+            {
+                id: 'average_stake_per_bet',
+                name: 'Average Stake per Bet',
+                baseline: 10,
+                formula: 'Static Input',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 1.5,
+                parents: ['total_gross_revenue']
             },
             {
                 id: 'average_revenue_per_user',
@@ -771,7 +771,7 @@
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 4,
-                parents: ['gross_revenue_per_active', 'total_stakes']
+                parents: ['total_stakes', 'gross_revenue_per_active']
             },
             {
                 id: 'total_stakes',
