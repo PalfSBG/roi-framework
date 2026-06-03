@@ -164,17 +164,23 @@
             min-width: 100%;
         }
 
+        /* Completely transparent containers for structural alignment */
         .mermaid .subgraphCluster rect,
         .mermaid rect.subgraph-border {
             fill: none !important;
             stroke: none !important;
-            background: none !important;
-            opacity: 0 !important;
+            stroke-width: 0px !important;
         }
         .mermaid .subgraphLabel text,
         .mermaid .subgraph-title {
-            fill: none !important;
             display: none !important;
+        }
+
+        /* Style to hide layout-forcing helper links */
+        .mermaid .link-invisible, 
+        .mermaid .edgePath.link-invisible path {
+            stroke: transparent !important;
+            stroke-width: 0px !important;
             opacity: 0 !important;
         }
 
@@ -714,14 +720,24 @@
                 parents: ['total_bets_placed']
             },
             {
+                id: 'average_stake_per_bet',
+                name: 'Average Stake per Bet',
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
+                definition: 'Placeholder calculated field metric structure.',
+                metricLevel: 'Visit',
+                rank: 4,
+                parents: ['total_gross_revenue']
+            },
+            {
                 id: 'margin_perc',
                 name: 'Margin %',
                 baseline: 0.545,
                 formula: 'Static Input',
                 definition: 'Target processing yield margin structure ratio configurations.',
                 metricLevel: 'Visit',
-                rank: 1.75,
-                parents: ['gross_revenue_per_active', 'total_gross_revenue']
+                rank: 4,
+                parents: ['total_gross_revenue']
             },
             {
                 id: 'gross_revenue_per_active',
@@ -730,18 +746,8 @@
                 formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
-                rank: 1.5,
+                rank: 4,
                 parents: ['total_gross_revenue', 'average_revenue_per_user']
-            },
-            {
-                id: 'average_stake_per_bet',
-                name: 'Average Stake per Bet',
-                baseline: 10,
-                formula: 'Awaiting Formula Mapping',
-                definition: 'Placeholder calculated field metric structure.',
-                metricLevel: 'Visit',
-                rank: 1.5,
-                parents: ['total_gross_revenue']
             },
             {
                 id: 'average_revenue_per_user',
@@ -771,7 +777,7 @@
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 4,
-                parents: ['total_stakes', 'gross_revenue_per_active']
+                parents: ['gross_revenue_per_active', 'total_stakes']
             },
             {
                 id: 'total_stakes',
@@ -804,6 +810,7 @@
                 parents: ['average_stake_per_active']
             }
         ];
+
         // --- DYNAMIC CONFIGURATION LOADER ---
         async function loadConfig() {
             try {
@@ -811,15 +818,11 @@
                 if (response.ok) {
                     const config = await response.json();
                     
-                    // Loop through every key-value pair provided in config.json
+                    // Loop through every key-value pair provided inside config.json
                     Object.keys(config).forEach(key => {
-                        // Find the matching metric object in your data architecture
                         const targetMetric = metricsData.find(m => m.id === key);
-                        
                         if (targetMetric) {
                             targetMetric.baseline = parseFloat(config[key]);
-                            
-                            // Optional: If you want to automatically label configured inputs as "Static Input"
                             if (targetMetric.formula === 'Awaiting Formula Mapping') {
                                 targetMetric.formula = 'Static Input';
                             }
@@ -829,7 +832,7 @@
             } catch (error) {
                 console.error("Could not fetch or parse config.json, running default baseline context:", error);
             }
-        
+
             renderTree();
             renderMetricsList();
             setTimeout(() => updateZoom(), 500);
@@ -892,8 +895,8 @@
             });
         }
 
-        let currentZoom = 6;
-        const zoomStep = 1;
+        let currentZoom = 1;
+        const zoomStep = 0.1;
         const minZoom = 0.1;
         const maxZoom = 10;
 
@@ -946,7 +949,7 @@
 
         function generateMermaidDiagram() {
             let mermaidCode = `graph TD\n`;
-            
+
             const groupsByRank = {};
             metricsData.forEach(metric => {
                 const rankVal = metric.rank !== undefined ? metric.rank : 99;
@@ -956,16 +959,31 @@
 
             const activeSubgraphs = [];
 
+            // Preferred left-to-right processing structure alignment rules
+            const customLeftToRightOrder = [
+                'margin_perc',
+                'average_stake_per_bet',
+                'gross_revenue_per_active',
+                'total_gross_revenue'
+            ];
+
             Object.keys(groupsByRank).sort((a, b) => a - b).forEach(rank => {
                 const nodesInRank = groupsByRank[rank];
-                const useSubgraph = nodesInRank.length > 1 || rank == 0.5;
                 const subgraphId = `Rank_${rank.toString().replace('.', '_')}`;
-
-                if (useSubgraph) {
-                    mermaidCode += `  subgraph ${subgraphId} [" "]\n`;
-                    activeSubgraphs.push(subgraphId);
-                }
                 
+                // Keep structural subgraph framing, but leave text tags completely blank
+                mermaidCode += `  subgraph ${subgraphId} [" "]\n`;
+                activeSubgraphs.push({ id: subgraphId, rankKey: rank.toString().replace('.', '_') });
+                
+                nodesInRank.sort((a, b) => {
+                    const indexA = customLeftToRightOrder.indexOf(a.id);
+                    const indexB = customLeftToRightOrder.indexOf(b.id);
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    return 0;
+                });
+
                 nodesInRank.forEach(metric => {
                     const nodeName = metric.name.substring(0, 35);
                     const dynamicValue = formatBaseline(getMetricValue(metric.id));
@@ -973,9 +991,7 @@
                     mermaidCode += `      ${metric.id}["${nodeText}"]\n`;
                 });
 
-                if (useSubgraph) {
-                    mermaidCode += `  end\n`;
-                }
+                mermaidCode += `  end\n`;
             });
 
             metricsData.forEach(metric => {
@@ -986,6 +1002,14 @@
                 }
             });
             
+            // --- INVISIBLE EXTRA LINKS TO FORCE MARGIN % FAR LEFT ---
+            mermaidCode += `    margin_perc ---> average_stake_per_bet\n`;
+            mermaidCode += `    margin_perc ---> gross_revenue_per_active\n`;
+            mermaidCode += `    margin_perc ---> total_gross_revenue\n`;
+            
+            const baseEdgeCount = metricsData.reduce((acc, m) => acc + (m.parents ? m.parents.length : 0), 0);
+            mermaidCode += `    linkStyle ${baseEdgeCount},${baseEdgeCount + 1},${baseEdgeCount + 2} stroke:transparent,stroke-width:0px;\n`;
+            
             mermaidCode += `
                 classDef levelRoot fill:#f5576c,stroke:#c41e3a,stroke-width:3px,color:#fff
                 classDef levelOther fill:#667eea,stroke:#5568d3,stroke-width:2px,color:#fff
@@ -995,8 +1019,9 @@
                 class total_net_revenue levelRoot
             `;
 
-            activeSubgraphs.forEach(id => {
-                mermaidCode += `    style ${id} fill:none,stroke:none,stroke-width:0px\n`;
+            // Enforce zero visual style parameters back into containers to combine into a single chart
+            activeSubgraphs.forEach(subgraph => {
+                mermaidCode += `    style ${subgraph.id} fill:none,stroke:none,stroke-width:0px\n`;
             });
 
             return mermaidCode;
@@ -1074,7 +1099,7 @@
             }
         });
 
-        // Trigger dynamic context fetch assignment pipeline sequence
+        // Trigger configuration load sequence
         loadConfig();
     </script>
 </body>
