@@ -164,18 +164,18 @@
             min-width: 100%;
         }
 
+        /* Updated Subgraph Styles to allow backgrounds and titles */
         .mermaid .subgraphCluster rect,
         .mermaid rect.subgraph-border {
-            fill: none !important;
-            stroke: none !important;
-            background: none !important;
-            opacity: 0 !important;
+            stroke-width: 2px !important;
+            rx: 8px;
         }
         .mermaid .subgraphLabel text,
         .mermaid .subgraph-title {
-            fill: none !important;
-            display: none !important;
-            opacity: 0 !important;
+            font-family: 'Segoe UI', sans-serif !important;
+            font-weight: bold !important;
+            font-size: 14px !important;
+            fill: #333 !important;
         }
 
         .metrics-section, .admin-section {
@@ -812,15 +812,11 @@
                 if (response.ok) {
                     const config = await response.json();
                     
-                    // Loop through every key-value pair provided in config.json
+                    // Loop through every key-value pair provided inside config.json
                     Object.keys(config).forEach(key => {
-                        // Find the matching metric object in your data architecture
                         const targetMetric = metricsData.find(m => m.id === key);
-                        
                         if (targetMetric) {
                             targetMetric.baseline = parseFloat(config[key]);
-                            
-                            // Optional: If you want to automatically label configured inputs as "Static Input"
                             if (targetMetric.formula === 'Awaiting Formula Mapping') {
                                 targetMetric.formula = 'Static Input';
                             }
@@ -830,7 +826,7 @@
             } catch (error) {
                 console.error("Could not fetch or parse config.json, running default baseline context:", error);
             }
-        
+
             renderTree();
             renderMetricsList();
             setTimeout(() => updateZoom(), 500);
@@ -948,6 +944,20 @@
         function generateMermaidDiagram() {
             let mermaidCode = `graph TD\n`;
             
+            // Background colors mapped to specific ranks for visual distinction
+            const tierColors = {
+                '0_5': '#ffebee',  // Light Pink for Root
+                '1': '#fff3e0',    // Light Orange
+                '1_5': '#fffde7',  // Light Yellow
+                '2': '#e8f5e9',    // Light Green
+                '3': '#e0f7fa',    // Light Cyan
+                '4': '#e1f5fe',    // Light Blue
+                '5': '#e8eaf6',    // Light Indigo
+                '6': '#f3e5f5',    // Light Purple
+                '6_5': '#fae1f5',  // Light Magenta
+                '7': '#efebe9'     // Light Brown
+            };
+
             const groupsByRank = {};
             metricsData.forEach(metric => {
                 const rankVal = metric.rank !== undefined ? metric.rank : 99;
@@ -957,16 +967,37 @@
 
             const activeSubgraphs = [];
 
+			// Define your preferred left-to-right order for nodes within any rank
+            // Leftmost items go first in the array
+            const customLeftToRightOrder = [
+                'margin_perc',
+                'average_stake_per_bet',
+                'gross_revenue_per_active',
+                'total_gross_revenue' // Added to ensure everything else is forced to the right of margin_perc
+            ];
+
             Object.keys(groupsByRank).sort((a, b) => a - b).forEach(rank => {
                 const nodesInRank = groupsByRank[rank];
-                const useSubgraph = nodesInRank.length > 1 || rank == 0.5;
                 const subgraphId = `Rank_${rank.toString().replace('.', '_')}`;
+                const tierLabel = `Tier ${rank}`;
 
-                if (useSubgraph) {
-                    mermaidCode += `  subgraph ${subgraphId} [" "]\n`;
-                    activeSubgraphs.push(subgraphId);
-                }
+                mermaidCode += `  subgraph ${subgraphId} [" ${tierLabel} "]\n`;
+                activeSubgraphs.push({ id: subgraphId, rankKey: rank.toString().replace('.', '_') });
                 
+                // Sort based on the customLeftToRightOrder array
+                nodesInRank.sort((a, b) => {
+                    const indexA = customLeftToRightOrder.indexOf(a.id);
+                    const indexB = customLeftToRightOrder.indexOf(b.id);
+                    
+                    // If both are in the priority list, sort by their index position
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                    // Move prioritized nodes to the left
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    // Otherwise keep original placement
+                    return 0;
+                });
+
                 nodesInRank.forEach(metric => {
                     const nodeName = metric.name.substring(0, 35);
                     const dynamicValue = formatBaseline(getMetricValue(metric.id));
@@ -974,9 +1005,7 @@
                     mermaidCode += `      ${metric.id}["${nodeText}"]\n`;
                 });
 
-                if (useSubgraph) {
-                    mermaidCode += `  end\n`;
-                }
+                mermaidCode += `  end\n`;
             });
 
             metricsData.forEach(metric => {
@@ -996,8 +1025,11 @@
                 class total_net_revenue levelRoot
             `;
 
-            activeSubgraphs.forEach(id => {
-                mermaidCode += `    style ${id} fill:none,stroke:none,stroke-width:0px\n`;
+            // Apply specific background and thin gray border line definitions to subgraphs
+            activeSubgraphs.forEach(subgraph => {
+                const bgColor = tierColors[subgraph.rankKey] || '#f8f9fa';
+                const strokeColor = '#b0bec5'; 
+                mermaidCode += `    style ${subgraph.id} fill:${bgColor},stroke:${strokeColor},stroke-width:1px\n`;
             });
 
             return mermaidCode;
