@@ -39,7 +39,7 @@
             font-size: 1.2em;
             opacity: 0.95;
         }
-        
+
         /* Tab Navigation Styles */
         .tabs-nav {
             display: flex;
@@ -183,7 +183,7 @@
             border-radius: 10px;
             padding: 25px;
         }
-        
+
         #metricsList {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -421,7 +421,7 @@
             <div id="admin-tab" class="tab-content">
                 <div class="admin-section">
                     <h2>Variable Assumptions Control</h2>
-                    
+
                     <div id="adminAuthBlock" class="admin-auth">
                         <h3>🔒 Admin Authentication</h3>
                         <p style="color:#777; font-size:0.9em; margin: 10px 0 20px;">Please enter your passcode to modify system variables.</p>
@@ -447,15 +447,15 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
+
             document.getElementById(tabId).classList.add('active');
-            
+
             if (window.event && window.event.currentTarget) {
                 window.event.currentTarget.classList.add('active');
             } else if (typeof event !== 'undefined' && event.currentTarget) {
                 event.currentTarget.classList.add('active');
             }
-            
+
             if(tabId === 'tree-tab') {
                 setTimeout(() => updateZoom(), 50);
             }
@@ -537,7 +537,7 @@
                 id: 'total_active_real_money_player_days',
                 name: 'Total Active Real Money Player Days',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 6,
@@ -546,8 +546,8 @@
             {
                 id: 'total_real_money_actives',
                 name: 'Total Real Money Actives',
-                formula: 'Total Actives × Real Money Active Conversion',
-                calculate: (get) => get('total_active_users') * get('real_money_active_conversion'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 6,
@@ -557,7 +557,7 @@
                 id: 'real_money_active_conversion',
                 name: 'Real Money Active Conversion',
                 baseline: 10, 
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Conversion threshold measuring customer transition from standard session engagement to funded real money status.',
                 metricLevel: 'User',
                 rank: 7,
@@ -566,8 +566,8 @@
             {
                 id: 'total_active_users',
                 name: 'Total Active Users',
-                formula: 'Total Logged-In Users × Logged-In to Active Conversion',
-                calculate: (get) => get('total_logged_in_users') * get('logged_in_to_active_users'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 5,
@@ -577,7 +577,7 @@
                 id: 'logged_in_to_active_users',
                 name: 'Logged-In to Active User Conversion',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 6,
@@ -586,8 +586,8 @@
             {
                 id: 'total_logged_in_visits',
                 name: 'Total Logged-In Visits',
-                formula: 'Total Visits × Visit to Logged-In Conversion',
-                calculate: (get) => get('total_visits') * get('visit_to_logged_in_conversion'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -597,7 +597,7 @@
                 id: 'visit_to_logged_in_conversion',
                 name: 'Visit to Logged-In Conversion',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -607,7 +607,7 @@
                 id: 'conversion_to_intent',
                 name: 'Conversion To Intent',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -616,8 +616,8 @@
             {
                 id: 'total_visits_with_a_game_launch',
                 name: 'Total Visits with a Game Launch',
-                formula: 'Total Visits × Conversion To Intent',
-                calculate: (get) => get('total_visits') * get('conversion_to_intent'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -627,7 +627,7 @@
                 id: 'games_launched_per_visit',
                 name: 'Games Launched per Visit',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -636,8 +636,8 @@
             {
                 id: 'total_games_launched',
                 name: 'Total Games Launched',
-                formula: 'Total Visits with a Game Launch × Games Launched per Visit',
-                calculate: (get) => get('total_visits_with_a_game_launch') * get('games_launched_per_visit'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -647,7 +647,7 @@
                 id: 'game_launch_to_real_money_stake_conversion',
                 name: 'Game Launch to Real Money Stake Conversion',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -656,8 +656,8 @@
             {
                 id: 'total_game_launches_with_real_money_stake',
                 name: 'Total Game Launchs with a Real Money Stake',
-                formula: 'Total Games Launched × Game Launch to Real Money Stake Conversion',
-                calculate: (get) => get('total_games_launched') * get('game_launch_to_real_money_stake_conversion'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -667,7 +667,7 @@
                 id: 'real_money_bets_placed_per_game_launch',
                 name: 'Real Money Bets Placed per Game Launch',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 1,
@@ -686,8 +686,8 @@
             {
                 id: 'total_bets_placed',
                 name: 'Total Bets Placed',
-                formula: 'Total Actives × Bets Placed per User',
-                calculate: (get) => get('total_active_users') * get('bets_placed_per_active_user'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 3,
@@ -697,7 +697,7 @@
                 id: 'perc_real_money_bets_placed',
                 name: '% Total Real Money Bets Placed',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 3,
@@ -707,7 +707,7 @@
                 id: 'bets_placed_per_active_user',
                 name: 'Bets Placed per Active User',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 3,
@@ -717,7 +717,7 @@
                 id: 'average_stake_per_bet',
                 name: 'Average Stake per Bet',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 4,
@@ -731,13 +731,13 @@
                 definition: 'Target processing yield margin structure ratio configurations.',
                 metricLevel: 'Visit',
                 rank: 4,
-                parents: ['total_gross_revenue', 'gross_revenue_per_active']
+                parents: ['total_gross_revenue']
             },
             {
                 id: 'gross_revenue_per_active',
                 name: 'Gross Revenue per Active',
-                formula: 'Average Stake per User × Margin %',
-                calculate: (get) => get('average_stake_per_active') * get('margin_perc'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 4,
@@ -746,8 +746,8 @@
             {
                 id: 'average_revenue_per_user',
                 name: 'Average Revenue per User',
-                formula: 'Generosity Spend per User × Gross Revenue per User',
-                calculate: (get) => get('generosity_spend_per_user') * get('gross_revenue_per_active'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 4,
@@ -757,7 +757,7 @@
                 id: 'generosity_spend_per_user',
                 name: 'Generosity Spend per User',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 4,
@@ -766,8 +766,8 @@
             {
                 id: 'average_stake_per_active',
                 name: 'Average Stake per Active',
-                formula: 'Active Player Days per Active User × Average Stakes per Active User per Day',
-                calculate: (get) => get('active_player_days_per_active_user') * get('average_stakes_per_active_user_per_day'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 4,
@@ -776,8 +776,8 @@
             {
                 id: 'total_stakes',
                 name: 'Total Stakes',
-                formula: 'Total Actives × Average Stakes per User',
-                calculate: (get) => get('total_active_users') * get('average_stake_per_active'),
+                baseline: 10,
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'Visit',
                 rank: 4,
@@ -787,7 +787,7 @@
                 id: 'active_player_days_per_active_user',
                 name: 'Active Player Days per Active User',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 4,
@@ -797,7 +797,7 @@
                 id: 'average_stakes_per_active_user_per_day',
                 name: 'Average Stakes per Active User per Day',
                 baseline: 10,
-                formula: 'Static Input',
+                formula: 'Awaiting Formula Mapping',
                 definition: 'Placeholder calculated field metric structure.',
                 metricLevel: 'User',
                 rank: 4,
@@ -811,7 +811,12 @@
                 const response = await fetch('config.json');
                 if (response.ok) {
                     const config = await response.json();
-                    
+                    const targetMetric = metricsData.find(m => m.id === 'real_money_active_conversion');
+
+                    if (targetMetric && config.real_money_active_conversion !== undefined) {
+                        targetMetric.baseline = parseFloat(config.real_money_active_conversion);
+                        targetMetric.formula = 'Static Input'; 
+                    }
                     // Loop through every key-value pair provided in config.json
                     Object.keys(config).forEach(key => {
                         // Find the matching metric object in your data architecture
@@ -830,6 +835,7 @@
             } catch (error) {
                 console.error("Could not fetch or parse config.json, running default baseline context:", error);
             }
+
         
             renderTree();
             renderMetricsList();
@@ -840,7 +846,7 @@
         function getMetricValue(id) {
             const metric = metricsData.find(m => m.id === id);
             if (!metric) return 0;
-            
+
             if (typeof metric.calculate === 'function') {
                 return metric.calculate(getMetricValue);
             }
@@ -873,7 +879,7 @@
                 if (metric.formula === 'Static Input') {
                     const card = document.createElement('div');
                     card.className = 'input-card';
-                    
+
                     card.innerHTML = `
                         <label for="input_${metric.id}">${metric.name}</label>
                         <div class="input-desc">${metric.definition || 'System Base Assumption'}</div>
@@ -883,7 +889,7 @@
                     card.querySelector('input').addEventListener('input', (e) => {
                         const nextVal = parseFloat(e.target.value);
                         metric.baseline = isNaN(nextVal) ? 0 : nextVal;
-                        
+
                         renderTree();
                         renderMetricsList(document.getElementById('searchInput').value);
                     });
@@ -947,7 +953,7 @@
 
         function generateMermaidDiagram() {
             let mermaidCode = `graph TD\n`;
-            
+
             const groupsByRank = {};
             metricsData.forEach(metric => {
                 const rankVal = metric.rank !== undefined ? metric.rank : 99;
@@ -966,7 +972,7 @@
                     mermaidCode += `  subgraph ${subgraphId} [" "]\n`;
                     activeSubgraphs.push(subgraphId);
                 }
-                
+
                 nodesInRank.forEach(metric => {
                     const nodeName = metric.name.substring(0, 35);
                     const dynamicValue = formatBaseline(getMetricValue(metric.id));
@@ -986,7 +992,7 @@
                     });
                 }
             });
-            
+
             mermaidCode += `
                 classDef levelRoot fill:#f5576c,stroke:#c41e3a,stroke-width:3px,color:#fff
                 classDef levelOther fill:#667eea,stroke:#5568d3,stroke-width:2px,color:#fff
@@ -1007,7 +1013,7 @@
             metricsData.sort((a, b) => (a.rank || 0) - (b.rank || 0));
             const diagram = generateMermaidDiagram();
             document.getElementById('treeChart').innerHTML = diagram;
-            
+
             mermaid.run({
                 nodes: [document.getElementById('treeChart')]
             });
