@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>Metric Tree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --navy: #0F1F4A;
+    --cyan: #15B5DB;
+    --ink: #1A2238;
+    --ink-2: #4A5170;
+    --ink-3: #7B829B;
+    --line: #E5E7ED;
+    --line-2: #CBD0DC;
+    --bg: #FFFFFF;
+    --bg-2: #F7F8FB;
+    --bg-3: #EEF0F5;
+    --font-display: 'Poppins', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #ffffff; color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+  .topbar { background: #ffffff; border-bottom: 1px solid var(--line); padding: 14px 0; position: sticky; top: 0; z-index: 100; }
+  .topbar-inner { max-width: 1600px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .brand-title { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--navy); letter-spacing: -0.01em; }
+  .brand-sub { font-family: var(--font-display); font-weight: 400; font-size: 14px; color: var(--cyan); }
+  .topbar-meta { font-family: var(--font-body); font-size: 12px; color: var(--ink-3); }
+
+  .page { max-width: 2400px; margin: 0 auto; padding: 32px 32px 64px; }
+  .page-heading { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--navy); margin-bottom: 6px; }
+  .page-sub { font-family: var(--font-body); font-size: 13px; color: var(--ink-3); margin-bottom: 32px; }
+
+  .tree-wrap { background: var(--bg); border-radius: 8px; padding: 40px 32px 36px; position: relative; }
+
+  .tree-canvas { position: relative; width: 100%; }
+  svg#main-svg { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; overflow: visible; }
+
+  .node-card { border-radius: 8px; padding: 13px 16px; text-align: left; width: 180px; flex-shrink: 0; }
+  .node-card.l3 { background: var(--navy); border: 1.5px solid var(--navy); }
+  .node-card.l3 .node-type { color: var(--cyan); }
+  .node-card.l3 .node-label { color: #ffffff; }
+  .node-card.l3 .node-desc { color: rgba(255,255,255,0.55); }
+  .node-card.l2 { background: #EBF8FD; border: 1.5px solid var(--cyan); }
+  .node-card.l2 .node-type { color: var(--cyan); }
+  .node-card.l2 .node-label { color: var(--navy); }
+  .node-card.l2 .node-desc { color: var(--ink-3); }
+  .node-card.l1 { background: var(--bg-2); border: 1.5px solid var(--line-2); }
+  .node-card.l1 .node-type { color: var(--ink-3); }
+  .node-card.l1 .node-label { color: var(--navy); }
+  .node-card.l1 .node-desc { color: var(--ink-3); }
+  .node-card.shared { border-color: #1D9E75; background: #EAF3DE; }
+  .node-card.shared .node-type { color: #0F6E56; }
+  .node-card.shared .node-label { color: var(--navy); }
+  .node-card.shared .node-desc { color: #27500A; }
+
+  .node-type { font-family: var(--font-body); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .node-label { font-family: var(--font-display); font-weight: 600; font-size: 12px; line-height: 1.35; }
+  .node-desc { font-family: var(--font-body); font-size: 10px; margin-top: 5px; line-height: 1.4; }
+
+  .level-label { font-family: var(--font-body); font-size: 10px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+  .level-label span { display: inline-block; background: var(--bg-3); border: 1px solid var(--line); border-radius: 4px; padding: 2px 10px; white-space: nowrap; }
+
+  .tree-footer { border-top: 1px solid var(--line); margin-top: 32px; padding-top: 14px; font-family: var(--font-body); font-size: 11px; color: var(--ink-3); display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .legend-dot.l3 { background: var(--navy); }
+  .legend-dot.l2 { background: #EBF8FD; border: 1.5px solid var(--cyan); }
+  .legend-dot.l1 { background: var(--bg-2); border: 1.5px solid var(--line-2); }
+  .legend-dot.shared { background: #EAF3DE; border: 1.5px solid #1D9E75; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div style="display:flex;align-items:baseline;gap:12px;">
+      <span class="brand-title">Metric Tree</span>
+      <span class="brand-sub">User Conversion</span>
+    </div>
+    <div class="topbar-meta">How key metrics relate and drive one another</div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-heading">User Conversion Metric Tree</div>
+  <p class="page-sub">Read top-to-bottom: each metric is decomposed into the drivers that determine it. The green node is shared across two branches.</p>
+
+  <div class="tree-wrap">
+    <div class="tree-canvas" id="tree-canvas">
+      <svg id="main-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+      <!-- ROW: Level 13 (apex) -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 13</span></div>
+        <div style="width:318px;flex-shrink:0;"></div>
+        <div id="n-tnnr">
+          <div class="node-card l3">
+            <div class="node-type">Apex metric</div>
+            <div class="node-label">Total Normalised Net Revenue</div>
+            <div class="node-desc">Top-level output: total net revenue normalised across all active users</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 12 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 12</span></div>
+        <div style="width:80px;flex-shrink:0;"></div>
+        <div id="n-trmap">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Real Money Active Player Days</div>
+            <div class="node-desc">Total player days attributed to real money actives</div>
+          </div>
+        </div>
+        <div style="width:155px;flex-shrink:0;"></div>
+        <div id="n-arpu">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Average Revenue per Active User (ARPU)</div>
+            <div class="node-desc">Total revenue divided by total active users</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 11 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 11</span></div>
+        <div style="width:80px;flex-shrink:0;"></div>
+        <div id="n-trma">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Real Money Actives</div>
+            <div class="node-desc">Total users who have placed real money bets</div>
+          </div>
+        </div>
+        <div style="width:30px;flex-shrink:0;"></div>
+        <div id="n-gspu">
+          <div class="node-card l2">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Generosity Spend per User</div>
+            <div class="node-desc">Average generosity spend per active user</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 10 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 10</span></div>
+        <div style="width:330px;flex-shrink:0;"></div>
+        <div id="n-tngr">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Normalised Gross Revenue</div>
+            <div class="node-desc">Gross revenue generated across all active users</div>
+          </div>
+        </div>
+        <div style="width:230px;flex-shrink:0;"></div>
+        <div id="n-aspb">
+          <div class="node-card l2">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Average Stake per Bet</div>
+            <div class="node-desc">Average amount staked per individual bet placed</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 9 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 9</span></div>
+        <div style="width:330px;flex-shrink:0;"></div>
+        <div id="n-ts">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Stakes</div>
+            <div class="node-desc">Total amount staked by all active users</div>
+          </div>
+        </div>
+        <!-- spacer to centre grpau between asau and margin -->
+        <div style="width:30px;flex-shrink:0;"></div>
+        <div id="n-grpau">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Gross Revenue per Active User</div>
+            <div class="node-desc">Gross revenue generated per active user</div>
+          </div>
+        </div>
+        <!-- spacer to centre trmb between tbp and prmb -->
+        <div style="width:280px;flex-shrink:0;"></div>
+        <div id="n-trmb">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Real Money Bets Placed</div>
+            <div class="node-desc">Total number of real money bets placed</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 8 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 8</span></div>
+        <div style="width:480px;flex-shrink:0;"></div>
+        <div id="n-asau">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Average Stake per Active User</div>
+            <div class="node-desc">Total stakes divided by number of active users</div>
+          </div>
+        </div>
+        <div id="n-margin">
+          <div class="node-card l2">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Margin %</div>
+            <div class="node-desc">Gross revenue as a % of total stakes</div>
+          </div>
+        </div>
+        <!-- spacer to land Total Bets Placed directly above Bets Placed per Active User -->
+        <div style="width:80px;flex-shrink:0;"></div>
+        <div id="n-tbp">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Bets Placed</div>
+            <div class="node-desc">Total number of bets placed in the period</div>
+          </div>
+        </div>
+        <div id="n-prmb">
+          <div class="node-card l2">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">% Real Money Bets Placed</div>
+            <div class="node-desc">Share of bets placed using real money</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:4px;"></div>
+
+      <!-- ROW: Level 7 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 7</span></div>
+        <div style="width:380px;flex-shrink:0;"></div>
+        <div id="n-apd">
+          <div class="node-card l2">
+            <div class="node-type">Frequency driver</div>
+            <div class="node-label">Active Player Days per Active User</div>
+            <div class="node-desc">Average days active per user in the period</div>
+          </div>
+        </div>
+        <div id="n-asad">
+          <div class="node-card l2">
+            <div class="node-type">Volume driver</div>
+            <div class="node-label">Average Stakes per Active User per Day</div>
+            <div class="node-desc">Average stakes placed on each active day</div>
+          </div>
+        </div>
+        <!-- hidden placeholders extending Level 7 rightward -->
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+      </div>
+
+      <div style="height:100px;"></div>
+
+      <!-- ROW: Level 6 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 6</span></div>
+        <!-- Far left -->
+        <div id="n-rmac">
+          <div class="node-card l2">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Real Money Active Conversion</div>
+            <div class="node-desc">% of active users who bet with real money</div>
+          </div>
+        </div>
+        <div id="n-tau">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Active Users</div>
+            <div class="node-desc">Users who placed at least one bet in the period</div>
+          </div>
+        </div>
+        <!-- 3 hidden placeholders to create horizontal space for Level 7 nodes above -->
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+        <div id="n-bpau">
+          <div class="node-card l2">
+            <div class="node-type">Volume driver</div>
+            <div class="node-label">Bets Placed per Active User</div>
+            <div class="node-desc">Average number of bets per active user</div>
+          </div>
+        </div>
+        <!-- hidden placeholder to separate prmb from tglrms -->
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l2">&nbsp;</div></div>
+        <div id="n-tglrms">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Game Launches with a Real Money Stake</div>
+            <div class="node-desc">Game launches where a real money bet was placed</div>
+          </div>
+        </div>
+        <!-- Far right -->
+        <div id="n-rmbpgl">
+          <div class="node-card l2">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Real Money Bets Placed per Game Launch</div>
+            <div class="node-desc">Average real money bets per game launch</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 5 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 5</span></div>
+        <!-- spacer; glrms left, tgl right -->
+        <div style="width:1300px;flex-shrink:0;"></div>
+        <div id="n-glrms">
+          <div class="node-card l3">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Game Launch to Real Money Stake %</div>
+            <div class="node-desc">% of game launches that result in a real money bet</div>
+          </div>
+        </div>
+        <div id="n-tgl">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Games Launched</div>
+            <div class="node-desc">Total number of game launches in the period</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 4 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 4</span></div>
+        <!-- spacer to push nodes rightward -->
+        <div style="width:1400px;flex-shrink:0;"></div>
+        <div id="n-tvwgl">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Visits with a Game Launch</div>
+            <div class="node-desc">Visits where at least one game was launched</div>
+          </div>
+        </div>
+        <!-- Games Launched per Visit on the right -->
+        <div id="n-glpv">
+          <div class="node-card l3">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Games Launched per Visit</div>
+            <div class="node-desc">Average number of games launched per visit</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 3 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 3</span></div>
+        <!-- Left: Logged-In to Active Conversion (standalone) -->
+        <div id="n-liac">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Logged-In to Active Conversion</div>
+            <div class="node-desc">% of logged-in users who place a bet</div>
+          </div>
+        </div>
+        <!-- hidden placeholder — keeps liac visually separated from the connector paths above -->
+        <div style="width:180px;flex-shrink:0;visibility:hidden;" aria-hidden="true"><div class="node-card l3">&nbsp;</div></div>
+        <!-- spacer to push liv/cti under tglrms area -->
+        <div style="width:880px;flex-shrink:0;"></div>
+        <!-- Middle: Total Logged-In Visits -->
+        <div id="n-liv">
+          <div class="node-card l3">
+            <div class="node-type">Output metric</div>
+            <div class="node-label">Total Logged-In Visits</div>
+            <div class="node-desc">Visits made by authenticated users</div>
+          </div>
+        </div>
+        <!-- Right: Conversion to Intent (new) -->
+        <div id="n-cti">
+          <div class="node-card l3">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Conversion to Intent</div>
+            <div class="node-desc">% of logged-in visits that include a game launch</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 2 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 2</span></div>
+        <!-- spacer to shift liu rightward, aligning it under Total Active Users (tau) -->
+        <div style="width:180px;flex-shrink:0;"></div>
+        <div id="n-liu">
+          <div class="node-card l2">
+            <div class="node-type">Volume driver</div>
+            <div class="node-label">Total Logged-In Users</div>
+            <div class="node-desc">Users who authenticated in the period</div>
+          </div>
+        </div>
+        <!-- spacer to push vlic/tv rightward under tglrms area -->
+        <div style="width:780px;flex-shrink:0;"></div>
+        <!-- Middle: Visit to Logged-In Conversion -->
+        <div id="n-vlic">
+          <div class="node-card l2">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Visit to Logged-In Conversion</div>
+            <div class="node-desc">% of visits where user authenticates</div>
+          </div>
+        </div>
+        <!-- Right: Total Visits -->
+        <div id="n-tv">
+          <div class="node-card l2">
+            <div class="node-type">Volume driver</div>
+            <div class="node-label">Total Visits</div>
+            <div class="node-desc">Total number of site visits in the period</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:52px;"></div>
+
+      <!-- ROW: Level 1 -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+        <div class="level-label" style="width:110px;text-align:right;flex-shrink:0;"><span>Level 1</span></div>
+        <!-- Left: Visitor to Logged-In Conversion (child of Total Logged-In Users) -->
+        <div id="n-cr">
+          <div class="node-card l1">
+            <div class="node-type">Rate driver</div>
+            <div class="node-label">Visitor to Logged-In Conversion</div>
+            <div class="node-desc">% of visitors who successfully authenticate</div>
+          </div>
+        </div>
+        <!-- Middle: Site Visitors (shared) -->
+        <div id="n-sv">
+          <div class="node-card l1 shared">
+            <div class="node-type">Shared driver</div>
+            <div class="node-label">Total Site Visitors</div>
+            <div class="node-desc">Unique visitors — shared input to both branches</div>
+          </div>
+        </div>
+        <!-- spacer to push vpv under tv -->
+        <div style="width:980px;flex-shrink:0;"></div>
+        <!-- Right: Visits per Visitor (child of Total Visits) -->
+        <div id="n-vpv">
+          <div class="node-card l1">
+            <div class="node-type">Frequency driver</div>
+            <div class="node-label">Visits per Visitor</div>
+            <div class="node-desc">Avg. number of visits per unique visitor</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tree-canvas -->
+
+    <div class="tree-footer">
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot l3"></div> Level 9 — Output metrics</div>
+        <div class="legend-item"><div class="legend-dot l3"></div> Level 8 — Output metrics</div>
+        <div class="legend-item"><div class="legend-dot l2"></div> Level 7 — Component metrics</div>
+        <div class="legend-item"><div class="legend-dot l3"></div> Level 6 — Output metrics</div>
+        <div class="legend-item"><div class="legend-dot l3"></div> Level 5 — Output metrics</div>
+        <div class="legend-item"><div class="legend-dot l3"></div> Level 4 — Output metrics</div>
+        <div class="legend-item"><div class="legend-dot l3"></div> Level 3 — Output metrics</div>
+        <div class="legend-item"><div class="legend-dot l2"></div> Level 2 — Component metrics</div>
+        <div class="legend-item"><div class="legend-dot l1"></div> Level 1 — Underlying drivers</div>
+        <div class="legend-item"><div class="legend-dot shared"></div> Shared node</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;text-align:right;font-size:11px;color:var(--ink-3);">
+        <span>Total Real Money Bets Placed = Total Bets Placed × % Real Money Bets Placed</span>
+        <span>Gross Revenue per Active User = Average Stake per Active User × Margin %</span>
+        <span>Total Stakes = Total Active Users × Average Stake per Active User</span>
+        <span>Total Bets Placed = Total Active Users × Bets Placed per Active User</span>
+        <span>Average Stake per Active User = Active Player Days per Active User × Average Stakes per Active User per Day</span>
+        <span>Total Active Users = Logged-In to Active Conversion × Total Logged-In Users</span>
+        <span>Total Game Launches with a Real Money Stake = Total Games Launched × Game Launch to Real Money Stake %</span>
+        <span>Total Games Launched = Total Visits with a Game Launch × Games Launched per Visit</span>
+        <span>Total Visits with a Game Launch = Total Logged-In Visits × Conversion to Intent</span>
+        <span>Total Logged-In Visits = Total Visits × Visit to Logged-In Conversion</span>
+        <span>Total Visits = Site Visitors × Visits per Visitor</span>
+        <span>Total Logged-In Users = Site Visitors × Visitor to Logged-In Conversion</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+function canvasMid(id, cr) {
+  const r = document.getElementById(id).getBoundingClientRect();
+  return {
+    x:   r.left + r.width  / 2 - cr.left,
+    top: r.top              - cr.top,
+    bot: r.bottom           - cr.top
+  };
+}
+
+function drawLine(svg, x1, y1, x2, y2, stroke, w, dashed) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+  el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+  el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', w);
+  el.setAttribute('stroke-linecap', 'round');
+  if (dashed) el.setAttribute('stroke-dasharray', '4 3');
+  svg.appendChild(el);
+}
+
+function drawDot(svg, cx, cy, fill) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  el.setAttribute('cx', cx); el.setAttribute('cy', cy);
+  el.setAttribute('r', 3.5); el.setAttribute('fill', fill);
+  svg.appendChild(el);
+}
+
+function draw() {
+  const svg = document.getElementById('main-svg');
+  svg.innerHTML = '';
+  const canvas = document.getElementById('tree-canvas');
+  const cr = canvas.getBoundingClientRect();
+  svg.setAttribute('height', cr.height);
+
+  const C = '#CBD0DC';
+  const G = '#1D9E75';
+  const w = '1.5';
+
+  const tnnr  = canvasMid('n-tnnr',  cr);
+  const trmap = canvasMid('n-trmap', cr);
+  const arpu  = canvasMid('n-arpu',  cr);
+  const trma  = canvasMid('n-trma',  cr);
+  const gspu  = canvasMid('n-gspu',  cr);
+  const tngr  = canvasMid('n-tngr',  cr);
+  const aspb  = canvasMid('n-aspb',  cr);
+  const ts     = canvasMid('n-ts',     cr);
+  const grpau  = canvasMid('n-grpau',  cr);
+  const trmb   = canvasMid('n-trmb',   cr);
+  const asau   = canvasMid('n-asau',   cr);
+  const margin = canvasMid('n-margin', cr);
+  const tbp    = canvasMid('n-tbp',    cr);
+  const prmb   = canvasMid('n-prmb',   cr);
+  const apd    = canvasMid('n-apd',    cr);
+  const asad   = canvasMid('n-asad',   cr);
+  const rmac   = canvasMid('n-rmac',   cr);
+  const tau    = canvasMid('n-tau',    cr);
+  const bpau   = canvasMid('n-bpau',   cr);
+  const tglrms = canvasMid('n-tglrms', cr);
+  const rmbpgl = canvasMid('n-rmbpgl', cr);
+  const glrms  = canvasMid('n-glrms',  cr);
+  const tgl    = canvasMid('n-tgl',    cr);
+  const tvwgl  = canvasMid('n-tvwgl',  cr);
+  const glpv  = canvasMid('n-glpv',  cr);
+  const liac  = canvasMid('n-liac',  cr);
+  const liv   = canvasMid('n-liv',   cr);
+  const cti   = canvasMid('n-cti',   cr);
+  const liu   = canvasMid('n-liu',   cr);
+  const vlic = canvasMid('n-vlic', cr);
+  const tv   = canvasMid('n-tv',   cr);
+  const cr2  = canvasMid('n-cr',   cr);
+  const sv   = canvasMid('n-sv',   cr);
+  const vpv  = canvasMid('n-vpv',  cr);
+
+  // ── L13: tnnr → arpu (L12) + tau (L6) ───────────────────────────────────────
+  const midY_13_12 = (tnnr.bot + trmap.top) / 2;
+  drawLine(svg, tnnr.x,  tnnr.bot,  tnnr.x,  midY_13_12, C, w);
+  drawLine(svg, tau.x,   midY_13_12, arpu.x,  midY_13_12, C, w);   // bus: tau → arpu
+  drawLine(svg, arpu.x,  midY_13_12, arpu.x,  arpu.top,  C, w);
+  drawLine(svg, tau.x,   midY_13_12, tau.x,   tau.top,   C, w);
+  drawDot(svg, tnnr.x,  midY_13_12, C);
+  drawDot(svg, arpu.x,  midY_13_12, C);
+  drawDot(svg, tau.x,   midY_13_12, C);
+
+  // ── L12: trmap → trma; arpu → gspu + grpau (bridge arc over aspb→tngr) ───────
+  const midY_12_11 = (trmap.bot + trma.top) / 2;
+  // trmap → trma: straight vertical (same x)
+  drawLine(svg, trmap.x, trmap.bot, trmap.x, trma.top, C, w);
+  // arpu drops to bus spanning gspu.x → grpau.x
+  drawLine(svg, arpu.x,  arpu.bot,  arpu.x,  midY_12_11, C, w);
+  drawLine(svg, gspu.x,  midY_12_11, grpau.x, midY_12_11, C, w);
+  drawLine(svg, gspu.x,  midY_12_11, gspu.x,  gspu.top,  C, w);
+  drawDot(svg, arpu.x,  midY_12_11, C);
+  drawDot(svg, gspu.x,  midY_12_11, C);
+  drawDot(svg, grpau.x, midY_12_11, C);
+  // grpau vertical: jumps over the aspb→tngr horizontal with a bridge arc
+  const crossY = (tngr.top + tngr.bot) / 2;  // y of the aspb→tngr side-connector
+  const br = 6;  // bridge arc radius
+  drawLine(svg, grpau.x, midY_12_11, grpau.x, crossY - br, C, w);
+  const bridgePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  bridgePath.setAttribute('d', `M ${grpau.x} ${crossY - br} A ${br} ${br} 0 0 1 ${grpau.x} ${crossY + br}`);
+  bridgePath.setAttribute('stroke', C); bridgePath.setAttribute('stroke-width', w);
+  bridgePath.setAttribute('fill', 'none'); bridgePath.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(bridgePath);
+  drawLine(svg, grpau.x, crossY + br, grpau.x, grpau.top, C, w);
+
+  // ── L11: trma → rmac (L6) + tau (L6); gspu → tngr (straight vertical) ───────
+  const midY_11_10 = (trma.bot + tngr.top) / 2;
+  drawLine(svg, trma.x, trma.bot,   trma.x, midY_11_10, C, w);      // trma drops
+  drawLine(svg, rmac.x, midY_11_10, tau.x,  midY_11_10, C, w);      // bus: rmac → tau
+  drawLine(svg, rmac.x, midY_11_10, rmac.x, rmac.top,   C, w);      // down to rmac
+  drawLine(svg, tau.x,  midY_11_10, tau.x,  tau.top,    C, w);      // down to tau
+  drawDot(svg, trma.x, midY_11_10, C);
+  drawDot(svg, rmac.x, midY_11_10, C);
+  drawDot(svg, tau.x,  midY_11_10, C);
+  // gspu sits directly above tngr — straight vertical connector
+  drawLine(svg, gspu.x, gspu.bot, gspu.x, tngr.top, C, w);
+
+  // ── L10: tngr → grpau (L9) + tau (L6); aspb side-connector into tngr ────────
+  const midY_10_9 = (tngr.bot + ts.top) / 2;
+  drawLine(svg, tngr.x,  tngr.bot,  tngr.x,  midY_10_9, C, w);        // tngr drops
+  drawLine(svg, tau.x,   midY_10_9, trmb.x,  midY_10_9, C, w);        // bus: tau.x → trmb.x
+  drawLine(svg, grpau.x, midY_10_9, grpau.x, grpau.top, C, w);        // up to grpau
+  drawLine(svg, trmb.x,  midY_10_9, trmb.x,  trmb.top,  C, w);        // down to trmb
+  drawLine(svg, tau.x,   midY_10_9, tau.x,   tau.top,   C, w);        // down to tau
+  drawDot(svg, tngr.x,  midY_10_9, C);
+  drawDot(svg, grpau.x, midY_10_9, C);
+  drawDot(svg, trmb.x,  midY_10_9, C);
+  drawDot(svg, tau.x,   midY_10_9, C);
+  // aspb → tngr: horizontal side-connector at mid-card height
+  const midY_aspb = (tngr.top + tngr.bot) / 2;
+  drawLine(svg, tngr.x + 90, midY_aspb, aspb.x - 90, midY_aspb, C, w);
+  drawDot(svg, tngr.x + 90, midY_aspb, C);
+  drawDot(svg, aspb.x - 90, midY_aspb, C);
+
+  // ── L9: ts + grpau shared bus → tau + asau + margin (L8/L6) ─────────────────
+  // Bus extends left to tau.x so ts→tau avoids passing through apd (Level 7)
+  const midY_l9_l8 = (ts.bot + asau.top) / 2;
+  drawLine(svg, ts.x,     ts.bot,     ts.x,     midY_l9_l8,  C, w);
+  drawLine(svg, grpau.x,  grpau.bot,  grpau.x,  midY_l9_l8,  C, w);
+  drawLine(svg, tau.x,    midY_l9_l8, margin.x, midY_l9_l8,  C, w);  // bus: tau → margin
+  drawLine(svg, tau.x,    midY_l9_l8, tau.x,    tau.top,     C, w);  // ts → tau
+  drawLine(svg, asau.x,   midY_l9_l8, asau.x,   asau.top,    C, w);
+  drawLine(svg, margin.x, midY_l9_l8, margin.x, margin.top,  C, w);
+  drawDot(svg, tau.x,   midY_l9_l8, C);
+  drawDot(svg, ts.x,    midY_l9_l8, C);
+  drawDot(svg, grpau.x, midY_l9_l8, C);
+  drawDot(svg, asau.x,  midY_l9_l8, C);
+  drawDot(svg, margin.x,midY_l9_l8, C);
+
+  // ── L9: trmb → tbp + prmb (L8 children, standard branch) ────────────────────
+  const midY_trmb_l8 = (trmb.bot + tbp.top) / 2;
+  drawLine(svg, trmb.x,  trmb.bot,      trmb.x,  midY_trmb_l8, C, w);
+  drawLine(svg, tbp.x,   midY_trmb_l8,  prmb.x,  midY_trmb_l8, C, w);
+  drawLine(svg, tbp.x,   midY_trmb_l8,  tbp.x,   tbp.top,      C, w);
+  drawLine(svg, prmb.x,  midY_trmb_l8,  prmb.x,  prmb.top,     C, w);
+  drawDot(svg, trmb.x, midY_trmb_l8, C);
+  drawDot(svg, tbp.x,  midY_trmb_l8, C);
+  drawDot(svg, prmb.x, midY_trmb_l8, C);
+
+  // ── L9: trmb → tglrms + rmbpgl (L6 children, deep drop at 75% of L7→L6 gap) ─
+  const midY_trmb_deep = asad.bot + 0.75 * (tau.top - asad.bot);
+  drawLine(svg, trmb.x,   trmb.bot,        trmb.x,   midY_trmb_deep, C, w);
+  drawLine(svg, trmb.x,   midY_trmb_deep,  rmbpgl.x, midY_trmb_deep, C, w);
+  drawLine(svg, tglrms.x, midY_trmb_deep,  tglrms.x, tglrms.top,     C, w);
+  drawLine(svg, rmbpgl.x, midY_trmb_deep,  rmbpgl.x, rmbpgl.top,     C, w);
+  drawDot(svg, trmb.x,   midY_trmb_deep, C);
+  drawDot(svg, tglrms.x, midY_trmb_deep, C);
+  drawDot(svg, rmbpgl.x, midY_trmb_deep, C);
+
+  // ── L8 → L7 ──────────────────────────────────────────
+  // Average Stake per Active User → Active Player Days per Active User + Avg Stakes per Active User per Day
+  const midY_87 = (asau.bot + apd.top) / 2;
+  drawLine(svg, asau.x, asau.bot, asau.x, midY_87, C, w);
+  drawLine(svg, apd.x,  midY_87,  asad.x, midY_87, C, w);
+  drawLine(svg, apd.x,  midY_87,  apd.x,  apd.top, C, w);
+  drawLine(svg, asad.x, midY_87,  asad.x, asad.top, C, w);
+  drawDot(svg, asau.x, midY_87, C);
+  drawDot(svg, apd.x,  midY_87, C);
+  drawDot(svg, asad.x, midY_87, C);
+
+  // ── Total Bets Placed → Bets Placed per Active User (straight vertical) + Total Active Users (elbow left) ──
+  const midY_tbp = (asad.bot + tau.top) / 2;
+  drawLine(svg, tbp.x, tbp.bot,    tbp.x,  midY_tbp,  C, w);  // down to mid
+  drawLine(svg, tau.x, midY_tbp,   tbp.x,  midY_tbp,  C, w);  // horizontal to tau
+  drawLine(svg, tau.x, midY_tbp,   tau.x,  tau.top,   C, w);  // down to tau
+  drawLine(svg, tbp.x, midY_tbp,   tbp.x,  bpau.top,  C, w);  // continue down to bpau
+  drawDot(svg, tbp.x, midY_tbp, C);
+  drawDot(svg, tau.x, midY_tbp, C);
+
+  // ── Total Active Users → Logged-In to Active Conversion (L3) + Total Logged-In Users (L2) ──
+  const midY_tl = (tau.bot + liac.top) / 2;
+  drawLine(svg, tau.x,  tau.bot,  tau.x,  midY_tl,  C, w);
+  drawLine(svg, tau.x,  midY_tl,  liac.x, midY_tl,  C, w);
+  drawLine(svg, liac.x, midY_tl,  liac.x, liac.top, C, w);
+  drawDot(svg, tau.x,  midY_tl, C);
+  drawDot(svg, liac.x, midY_tl, C);
+
+  const midY_tlu = (tau.bot + liu.top) / 2;
+  drawLine(svg, tau.x,  tau.bot,  tau.x,  midY_tlu, C, w);
+  drawLine(svg, tau.x,  midY_tlu, liu.x,  midY_tlu, C, w);
+  drawLine(svg, liu.x,  midY_tlu, liu.x,  liu.top,  C, w);
+  drawDot(svg, tau.x,  midY_tlu, C);
+  drawDot(svg, liu.x,  midY_tlu, C);
+
+  // ── L6 → L5 ──────────────────────────────────────────
+  // Total Game Launches with a Real Money Stake → Game Launch to RM Stake % + Total Games Launched
+  const midY_65 = (tglrms.bot + glrms.top) / 2;
+  drawLine(svg, tglrms.x, tglrms.bot, tglrms.x, midY_65,  C, w);
+  drawLine(svg, glrms.x,  midY_65,    tgl.x,    midY_65,  C, w);
+  drawLine(svg, glrms.x,  midY_65,    glrms.x,  glrms.top, C, w);
+  drawLine(svg, tgl.x,    midY_65,    tgl.x,    tgl.top,   C, w);
+  drawDot(svg, tglrms.x, midY_65, C);
+  drawDot(svg, glrms.x,  midY_65, C);
+  drawDot(svg, tgl.x,    midY_65, C);
+
+  // ── L5 → L4 ──────────────────────────────────────────
+  // Total Games Launched → Total Visits with a Game Launch + Games Launched per Visit
+  const midY_54 = (tgl.bot + tvwgl.top) / 2;
+  drawLine(svg, tgl.x,   tgl.bot,   tgl.x,   midY_54,   C, w);
+  drawLine(svg, tvwgl.x, midY_54,   glpv.x,  midY_54,   C, w);
+  drawLine(svg, tvwgl.x, midY_54,   tvwgl.x, tvwgl.top, C, w);
+  drawLine(svg, glpv.x,  midY_54,   glpv.x,  glpv.top,  C, w);
+  drawDot(svg, tgl.x,   midY_54, C);
+  drawDot(svg, tvwgl.x, midY_54, C);
+  drawDot(svg, glpv.x,  midY_54, C);
+
+  // ── L4 → L3 ──────────────────────────────────────────
+  // Total Visits with a Game Launch → Total Logged-In Visits + Conversion to Intent
+  const midY_43 = (tvwgl.bot + liv.top) / 2;
+  drawLine(svg, tvwgl.x, tvwgl.bot, tvwgl.x, midY_43, C, w);
+  drawLine(svg, liv.x,   midY_43,   cti.x,   midY_43, C, w);
+  drawLine(svg, liv.x,   midY_43,   liv.x,   liv.top,  C, w);
+  drawLine(svg, cti.x,   midY_43,   cti.x,   cti.top,  C, w);
+  drawDot(svg, tvwgl.x, midY_43, C);
+  drawDot(svg, liv.x,   midY_43, C);
+  drawDot(svg, cti.x,   midY_43, C);
+
+  // ── L3 → L2 ──────────────────────────────────────────
+  // Total Logged-In Visits → Visit to LogIn Conv + Total Visits
+  const midY_32 = (liv.bot + vlic.top) / 2;
+  drawLine(svg, liv.x, liv.bot, liv.x, midY_32, C, w);
+  drawLine(svg, vlic.x, midY_32, tv.x, midY_32, C, w);
+  drawLine(svg, vlic.x, midY_32, vlic.x, vlic.top, C, w);
+  drawLine(svg, tv.x,   midY_32, tv.x,   tv.top,   C, w);
+  drawDot(svg, liv.x,  midY_32, C);
+  drawDot(svg, vlic.x, midY_32, C);
+  drawDot(svg, tv.x,   midY_32, C);
+
+  // Logged-In to Active Conversion — standalone at L3, no children; small descender stub
+  // (intentionally left without children as per spec)
+
+  // ── L2 → L1 ──────────────────────────────────────────
+  // Total Logged-In Users → Visitor to LogIn Conv (left) + Site Visitors (shared, middle)
+  const midY_21a = (liu.bot + cr2.top) / 2;
+  drawLine(svg, liu.x, liu.bot, liu.x, midY_21a, C, w);
+  drawLine(svg, cr2.x, midY_21a, sv.x, midY_21a, C, w);
+  drawLine(svg, cr2.x, midY_21a, cr2.x, cr2.top, C, w);
+  drawLine(svg, sv.x,  midY_21a, sv.x,  sv.top,  G, w);
+  drawDot(svg, liu.x, midY_21a, C);
+  drawDot(svg, cr2.x, midY_21a, C);
+  drawDot(svg, sv.x,  midY_21a, G);
+
+  // Total Visits → Site Visitors (shared, middle) + Visits per Visitor (right)
+  const midY_21b = (tv.bot + vpv.top) / 2;
+  drawLine(svg, tv.x,  tv.bot,  tv.x,  midY_21b, C, w);
+  drawLine(svg, sv.x,  midY_21b, tv.x,  midY_21b, C, w);
+  drawLine(svg, sv.x,  midY_21b, sv.x,  sv.bot,  G, w, true);
+  drawLine(svg, vpv.x, midY_21b, vpv.x, vpv.top,  C, w);
+  drawDot(svg, tv.x,  midY_21b, C);
+  drawDot(svg, sv.x,  midY_21b, G);
+  drawDot(svg, vpv.x, midY_21b, C);
+
+  // ── PRE/POST-CONVERSION divider between Level 6 and Level 5 ─────────────────
+  const divY = tglrms.bot + 10;
+  const divLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  divLine.setAttribute('x1', 0);    divLine.setAttribute('y1', divY);
+  divLine.setAttribute('x2', 2000); divLine.setAttribute('y2', divY);
+  divLine.setAttribute('stroke', '#CBD0DC'); divLine.setAttribute('stroke-width', '1.5');
+  divLine.setAttribute('stroke-dasharray', '6 4');
+  svg.appendChild(divLine);
+
+  const mkLabel = (txt, y) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    el.setAttribute('x', 130); el.setAttribute('y', y);
+    el.setAttribute('font-family', 'Inter, sans-serif');
+    el.setAttribute('font-size', '10'); el.setAttribute('font-weight', '700');
+    el.setAttribute('letter-spacing', '0.1em'); el.setAttribute('fill', '#7B829B');
+    el.textContent = txt;
+    svg.appendChild(el);
+  };
+  mkLabel('POST-CONVERSION',  divY - 6);
+  mkLabel('PRE-CONVERSION', divY + 13);
+}
+
+window.addEventListener('load', draw);
+window.addEventListener('resize', draw);
+</script>
+</body>
+</html>
